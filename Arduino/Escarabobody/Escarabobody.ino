@@ -75,8 +75,8 @@ void setup() {
   servoI.attach(7);
   servoP.attach(8);
 
-  servoD.write(95);
-  servoI.write(85);
+  servoD.write(85);
+  servoI.write(95);
   servoP.write(170);
 
 

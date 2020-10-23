@@ -16,157 +16,144 @@ import time
 
 ######################## DEFINICIONES PARA MQTT ####################
 
-host = "192.168.1.11"
-topic = "Control/orden"
-puerto = 1883
 
-distancia = Queue(10)
+def cliente(cola_objetivo, cola_base):
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print("Socket de control creado")
 
+    serverSocket.bind(('', 8486))
+    print("Socket de control bind completado")
 
-def on_connect(client, userdata, flags, rc):
+    serverSocket.listen()
+    print("Socket de control a la escucha")
 
-    if rc == 0:
+    orden = "on"
 
-        print("Connected to broker")
-        client.subscribe("Control/distancia")
-        client.publish(topic, "on")
-    else:
-
-        print("Connection failed")
-
-
-def on_message(client, userdata, msg):
-    m = str(msg.payload.decode("utf-8"))
-    if userdata.full():
-        pass
-    else:
-        userdata.put(m)
-    #print('%s %s' % (msg.topic, msg.payload))
-
-
-def on_publish(client, userdata, result):
-    #print("Orden Enviada")
-    pass
-
-
-def cliente(cola_distancia, cola_objetivo, cola_base):
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
-    client.on_publish = on_publish
-    client.user_data_set(cola_distancia)
-
-    client.connect(host, puerto)
-    client.loop_start()
     objetivo = ""
     base = ""
     adquirido = False
     contador = 100
     rotar = False
     distancia = 0
+
     while True:
+        conn, addr = serverSocket.accept()
 
-        if cola_objetivo.empty():
-            objetivo = "NA"
-        else:
-            objetivo = cola_objetivo.get()
-            print(objetivo[3])
+        serverSocket.setblocking(0)
 
-        if cola_base.empty():
-            base = "NA"
-        else:
-            base = cola_base.get()
+        print("Conexion de control establecida con %s:%s" % (addr[0], addr[1]))
 
-        if cola_distancia.empty():
-            distancia = 0
-        else:
-            distancia = cola_distancia.get()
+        conn.send(orden.encode())
+        while True:
 
+            try:
+                distancia = conn.recv(1024)
+                distancia = distancia.decode()
+            except:
+                pass
 
-        if distancia == 0:
-            pass
-        else:
-            if not adquirido:
-                # Busqueda de pieza
-                if objetivo == "NA":
-                    # NO ENCUENTRA PIEZA
-                    if not rotar:
-                        client.publish(topic, "a60")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = True
-                    else:
-                        client.publish(topic, "d100")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = False
-                else:
-                    # Hay objetivo
-                    x = objetivo[1]
-                    centro = 300
-                    margen = 50
-                    area = objetivo[3]
-                    distanciamin = 600
-                    if x < (centro + margen):
-                        # Obejetivo a la derecha
-                        client.publish(topic, "d100")
-                    elif x > (centro - margen):
-                        # Objetivo a la izquierda
-                        client.publish(topic, "i100")
-                    else:
-                        # Objetivo centrado
-                        if area > distanciamin:
-                            client.publish(topic, "a60")
-                        else:
-                            client.publish(topic, "s0")
-                            adquirido = True
-                            time.sleep(2)
+            if cola_objetivo.empty():
+                objetivo = "NA"
             else:
-                # Cubo en las pinzas moviendose a la base
-                if base == "NA":
-                    # No encuentra la base
-                    if not rotar:
-                        client.publish(topic, "a60")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = True
-                    else:
-                        client.publish(topic, "d100")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = False
-                else:
-                    # Hay objetivo
-                    x = base[1]
-                    centro = 300
-                    margen = 50
-                    area = base[3]
-                    distanciamin = 600
-                    if x < (centro + margen):
-                        # Obejetivo a la derecha
-                        client.publish(topic, "d100")
-                    elif x > (centro - margen):
-                        # Objetivo a la izquierda
-                        client.publish(topic, "a60")
-                    else:
-                        # Objetivo centrado
-                        if area > distanciamin:
-                            client.publish(topic, "a60")
+                objetivo = cola_objetivo.get()
+                # print(objetivo[1])
+
+            if cola_base.empty():
+                base = "NA"
+            else:
+                base = cola_base.get()
+
+            if distancia == 0:
+                pass
+            else:
+                if not adquirido:
+                    # Busqueda de pieza
+                    if objetivo == "NA":
+                        # NO ENCUENTRA PIEZA
+                        if not rotar:
+                            orden = "AVANCE"
+                            conn.send(orden.encode())
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 100
+                                rotar = True
                         else:
-                            client.publish(topic, "s0")
-                            adquirido = False
-                            time.sleep(2)
+                            orden = "DERECHA"
+                            conn.send(orden.encode())
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 100
+                                rotar = False
+                    else:
+                        # Hay objetivo
+                        x = objetivo[1]
+                        centro = 300
+                        margen = 20
+                        area = objetivo[3]
+                        distanciamin = 600
+                        if x < (centro + margen):
+                            # Obejetivo a la derecha
+                            orden = "DERECHA"
+                            conn.send(orden.encode())
+                        elif x > (centro - margen):
+                            # Objetivo a la izquierda
+                            orden = "IZQUIERDA"
+                            conn.send(orden.encode())
+                        else:
+                            # Objetivo centrado
+                            if area > distanciamin:
+                                orden = "AVANCE"
+                                conn.send(orden.encode())
+                            else:
+                                orden = "STOP"
+                                conn.send(orden.encode())
+                                adquirido = True
+                                time.sleep(2)
+                else:
+                    # Cubo en las pinzas moviendose a la base
+                    if base == "NA":
+                        # No encuentra la base
+                        if not rotar:
+                            orden = "AVANCE"
+                            conn.send(orden.encode())
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 100
+                                rotar = True
+                        else:
+                            orden = "DERECHA"
+                            conn.send(orden.encode())
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 100
+                                rotar = False
+                    else:
+                        # Hay objetivo
+                        x = base[1]
+                        centro = 300
+                        margen = 20
+                        area = base[3]
+                        distanciamin = 600
+                        if x < (centro + margen):
+                            # Obejetivo a la derecha
+                            orden = "DERECHA"
+                            conn.send(orden.encode())
+                        elif x > (centro - margen):
+                            # Objetivo a la izquierda
+                            orden = "AVANCE"
+                            conn.send(orden.encode())
+                        else:
+                            # Objetivo centrado
+                            if area > distanciamin:
+                                orden = "STOP"
+                                conn.send(orden.encode())
+                            else:
+                                orden = "STOP"
+                                conn.send(orden.encode())
+                                adquirido = False
+                                time.sleep(2)
 
-        # print("Objetivo:")
-        # print(objetivo)
-        # print("Base:")
-        # print(base)
-
-        time.sleep(0.05)
+            time.sleep(0.05)
 
 
 #################### SOCKET RECEPCION VIDEO #############
@@ -174,19 +161,20 @@ con = False
 
 
 def videoRec(cola_framesR, cola_framesG, cola_framesB, cola_framesF):
-    global con
     HOST = ''
     PORT = 8485
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print('Socket creado')
+    print('Socket de video creado')
 
     s.bind((HOST, PORT))
-    print('Socket bind completado')
+    print('Socket de video bind completado')
     s.listen(10)
-    print('Socket en espera')
+    print('Socket de video en espera')
 
     conn, addr = s.accept()
+
+    print("Conexion de video establecida con %s:%s" % (addr[0], addr[1]))
 
     data = b""
     payload_size = struct.calcsize(">L")
@@ -374,7 +362,6 @@ class objets:
 
 def control(cola_frames, cola_objR, cola_objG, cola_objB, cola_objetivo, cola_base):
 
-    mas_cercano = objets()
     cuboR = objets()
     cuboG = objets()
     cuboB = objets()
@@ -438,8 +425,6 @@ def control(cola_frames, cola_objR, cola_objG, cola_objB, cola_objetivo, cola_ba
 
         if cuboR.area > cuboG.area and cuboR.area > cuboB.area and cuboR.area > 0:
 
-            # print("Area: " + str(cuboR.area) + " X: " +
-            # str(cuboR.x) + " Y: " + str(cuboR.y))
             objetivo = "R"
             if cola_objetivo.full():
                 pass
@@ -448,8 +433,6 @@ def control(cola_frames, cola_objR, cola_objG, cola_objB, cola_objetivo, cola_ba
 
         elif cuboG.area > cuboB.area and cuboG.area > 0:
 
-            # print("Area: " + str(cuboG.area) + " X: " +
-            #      str(cuboG.x) + " Y: " + str(cuboG.y))
             objetivo = "G"
             if cola_objetivo.full():
                 pass
@@ -457,8 +440,6 @@ def control(cola_frames, cola_objR, cola_objG, cola_objB, cola_objetivo, cola_ba
                 cola_objetivo.put([objetivo, cuboG.x, cuboG.y, cuboG.area])
         elif cuboB.area > 0:
 
-            # print("Area: " + str(cuboB.area) + " X: " +
-            #      str(cuboB.x) + " Y: " + str(cuboB.y))
             objetivo = "B"
             if cola_objetivo.full():
                 pass
@@ -469,24 +450,18 @@ def control(cola_frames, cola_objR, cola_objG, cola_objB, cola_objetivo, cola_ba
 
         if baseR.area > 0 and objetivo == "R":
 
-            # print("Base R x: " + str(baseR.x) + " y: " +
-            #      str(baseR.y) + " area: " + str(baseR.area))
             if cola_base.full():
                 pass
             else:
                 cola_base.put([objetivo, baseR.x, baseR.y, baseR.area])
         elif baseG.area > 0 and objetivo == "G":
 
-            # print("Base G x: " + str(baseG.x) + " y: " +
-            #      str(baseG.y) + " area: " + str(baseG.area))
             if cola_base.full():
                 pass
             else:
                 cola_base.put([objetivo, baseG.x, baseG.y, baseG.area])
         elif baseB.area > 0 and objetivo == "B":
 
-            # print("Base B x: " + str(baseB.x) + " y: " +
-            #      str(baseB.y) + " area: " + str(baseB.area))
             if cola_base.full():
                 pass
             else:
@@ -506,7 +481,7 @@ if __name__ == '__main__':
     base = Queue(10)
 
     cliente_thread = multiprocessing.Process(
-        target=cliente, args=(distancia, objetivo, base))
+        target=cliente, args=(objetivo, base))
 
     videoRec_thread = multiprocessing.Process(
         target=videoRec, args=(framesR, framesG, framesB, framesF))

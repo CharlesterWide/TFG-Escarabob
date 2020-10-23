@@ -104,10 +104,10 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
                 else:
                     # Hay objetivo
                     x = objetivo[1]
-                    centro = 10
-                    margen = 10
+                    centro = 300
+                    margen = 50
                     area = objetivo[3]
-                    distanciamin = 100
+                    distanciamin = 600
                     if x > (centro + margen):
                         # Obejetivo a la derecha
                         client.publish(topic, "DERECHA")
@@ -141,10 +141,10 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
                 else:
                     # Hay objetivo
                     x = base[1]
-                    centro = 10
-                    margen = 10
+                    centro = 300
+                    margen = 50
                     area = base[3]
-                    distanciamin = 100
+                    distanciamin = 600
                     if x > (centro + margen):
                         # Obejetivo a la derecha
                         client.publish(topic, "DERECHA")

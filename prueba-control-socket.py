@@ -1,4 +1,5 @@
 import socket
+import time
 
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print("Socket Creado")
@@ -11,6 +12,7 @@ print("Socket a la escucha")
 
 orden = "on"
 dist = ""
+fin = False
 
 while True:
 
@@ -28,3 +30,31 @@ while True:
             print(dist.decode())
         except:
             conn.send(orden.encode())
+
+        if not fin:
+            time.sleep(1)
+            orden = "a80"
+            conn.send(orden.encode())
+            time.sleep(1)
+
+            orden = "d70"
+            conn.send(orden.encode())
+            time.sleep(0.08)
+
+            orden = "r80"
+            conn.send(orden.encode())
+            time.sleep(1)
+
+            orden = "i70"
+            conn.send(orden.encode())
+            time.sleep(0.08)
+            orden = "s0"
+            fin = True
+        else:
+            orden = "s0"
+            conn.send(orden.encode())
+
+
+        
+
+        

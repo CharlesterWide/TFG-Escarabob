@@ -1,17 +1,11 @@
 import numpy as np
 import cv2 as cv
-import paho.mqtt.client as mqtt
 import socket
-import sys
-import cv2 as cv
 import pickle
 import numpy as np
 import struct
-import zlib
 import multiprocessing
 from multiprocessing import Queue
-import queue
-import math
 import time
 
 ######################## DEFINICIONES PARA MQTT ####################
@@ -49,6 +43,7 @@ def cliente(cola_objetivo, cola_base):
             try:
                 distancia = conn.recv(1024)
                 distancia = distancia.decode()
+                # print(distancia)
             except:
                 pass
 
@@ -56,7 +51,7 @@ def cliente(cola_objetivo, cola_base):
                 objetivo = "NA"
             else:
                 objetivo = cola_objetivo.get()
-                # print(objetivo[1])
+                print(objetivo[3])
 
             if cola_base.empty():
                 base = "NA"
@@ -88,27 +83,27 @@ def cliente(cola_objetivo, cola_base):
                         # Hay objetivo
                         x = objetivo[1]
                         centro = 300
-                        margen = 20
+                        margen = 80
                         area = objetivo[3]
-                        distanciamin = 600
-                        if x < (centro + margen):
-                            # Obejetivo a la derecha
-                            orden = "DERECHA"
-                            conn.send(orden.encode())
-                        elif x > (centro - margen):
-                            # Objetivo a la izquierda
+                        distanciamin = 9500
+                        if x < (centro - margen):
+                            # Obejetivo a la izquierda
                             orden = "IZQUIERDA"
+                            conn.send(orden.encode())
+                        elif x > (centro + margen):
+                            # Objetivo a la derecha
+                            orden = "DERECHA"
                             conn.send(orden.encode())
                         else:
                             # Objetivo centrado
-                            if area > distanciamin:
+                            if area < distanciamin:
                                 orden = "AVANCE"
                                 conn.send(orden.encode())
                             else:
                                 orden = "STOP"
                                 conn.send(orden.encode())
-                                adquirido = True
-                                time.sleep(2)
+                                #adquirido = True
+                                #time.sleep(2)
                 else:
                     # Cubo en las pinzas moviendose a la base
                     if base == "NA":
@@ -131,27 +126,27 @@ def cliente(cola_objetivo, cola_base):
                         # Hay objetivo
                         x = base[1]
                         centro = 300
-                        margen = 20
+                        margen = 80
                         area = base[3]
-                        distanciamin = 600
-                        if x < (centro + margen):
-                            # Obejetivo a la derecha
-                            orden = "DERECHA"
+                        distanciamin = 9500
+                        if x < (centro - margen):
+                            # Obejetivo a la izquierda
+                            orden = "IZQUIERDA"
                             conn.send(orden.encode())
-                        elif x > (centro - margen):
-                            # Objetivo a la izquierda
-                            orden = "AVANCE"
+                        elif x > (centro + margen):
+                            # Objetivo a la derecha
+                            orden = "DERECHA"
                             conn.send(orden.encode())
                         else:
                             # Objetivo centrado
-                            if area > distanciamin:
+                            if area < distanciamin:
                                 orden = "STOP"
                                 conn.send(orden.encode())
                             else:
                                 orden = "STOP"
                                 conn.send(orden.encode())
-                                adquirido = False
-                                time.sleep(2)
+                                #adquirido = False
+                                #time.sleep(2)
 
             time.sleep(0.05)
 
@@ -200,6 +195,7 @@ def videoRec(cola_framesR, cola_framesG, cola_framesB, cola_framesF):
         frame = cv.imdecode(frame, cv.IMREAD_COLOR)
 
         frame = cv.flip(frame, 0)
+        frame = cv.flip(frame, 1)
 
         cola_framesR.put(frame)
         cola_framesG.put(frame)
@@ -270,15 +266,18 @@ def buscador(cola_frames, val_ini, color, cola_obj):
                     y = approx.ravel()[1]
 
                     if(area > 400):
-
+                        momentos = cv.moments(contour)
+                        cx = int(momentos['m10']/momentos['m00'])
+                        cy = int(momentos['m01']/momentos['m00'])
                         if len(approx) == 3:
                             cv.drawContours(
                                 frame, [approx], 0, (val_ini.B, val_ini.G, val_ini.R), 2)
-
+                            cv.circle(frame, (cx, cy), 3,
+                                      (val_ini.B, val_ini.G, val_ini.R), -1)
                             if cola_obj.full():
                                 pass
                             else:
-                                cola_obj.put([color, area, "T", x, y])
+                                cola_obj.put([color, area, "T", cx, cy])
 
                             cv.putText(frame, "Base", (x, y),
                                        font, 1, (255, 255, 255))
@@ -287,11 +286,12 @@ def buscador(cola_frames, val_ini, color, cola_obj):
                                 areamax = area
                                 cv.drawContours(
                                     frame, [approx], 0, (val_ini.B, val_ini.G, val_ini.R), 2)
-
+                                cv.circle(frame, (cx, cy), 3,
+                                          (val_ini.B, val_ini.G, val_ini.R), -1)
                                 if cola_obj.full():
                                     pass
                                 else:
-                                    cola_obj.put([color, area, "C", x, y])
+                                    cola_obj.put([color, area, "C", cx, cy])
 
                                 cv.putText(frame, "Objetivo", (x, y),
                                            font, 1, (255, 255, 255))
@@ -328,7 +328,7 @@ val_R.u_v = 255
 val_R.R = 255
 
 
-val_G = valores_ini()
+"""val_G = valores_ini()
 
 val_G.l_h = 45
 val_G.l_s = 80
@@ -337,9 +337,18 @@ val_G.u_h = 65
 val_G.u_s = 255
 val_G.u_v = 255
 val_G.G = 255
+"""
+val_G = valores_ini()
 
+val_G.l_h = 0
+val_G.l_s = 0
+val_G.l_v = 0
+val_G.u_h = 0
+val_G.u_s = 0
+val_G.u_v = 0
+val_G.G = 0
 
-val_B = valores_ini()
+"""val_B = valores_ini()
 
 val_B.l_h = 80
 val_B.l_s = 80
@@ -347,7 +356,17 @@ val_B.l_v = 40
 val_B.u_h = 100
 val_B.u_s = 255
 val_B.u_v = 255
-val_B.B = 255
+val_B.B = 255"""
+
+val_B = valores_ini()
+
+val_B.l_h = 0
+val_B.l_s = 0
+val_B.l_v = 0
+val_B.u_h = 0
+val_B.u_s = 0
+val_B.u_v = 0
+val_B.B = 0
 
 
 ########### CONTROL PRINCIPAL ################

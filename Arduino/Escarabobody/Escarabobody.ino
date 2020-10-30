@@ -48,6 +48,7 @@ Servo servoI, servoD, servoP;
 #define cue       'c'
 #define pinza     'p'
 #define led       'l'
+#define on        'o'
 
 void setup() {
 
@@ -92,6 +93,10 @@ void setup() {
   pinMode(IZ, OUTPUT);
   pinMode(EN, OUTPUT);
   pinMode(PIN, OUTPUT);
+
+
+
+  digitalWrite(PW, HIGH);
 }
 
 String recibido;
@@ -100,159 +105,204 @@ char parametro[10];
 int valor;
 int posI, posD;
 long duracion, distancia;
+bool go = false;
+
+
 void loop() {
-  digitalWrite(PW, HIGH);
-  if (Serial.available()) {
-    recibido = Serial.readString();
-    if (recibido.length() > 0 ) {                      //HAND SHAKE
+
+
+  //INICIO DEL PROGRAMA
+  //  if (Serial.available())
+  //  {
+  //    recibido = Serial.readString();
+  //    Serial.println(recibido);
+  //    modo = recibido[0];
+  //    //recibido.substring(1).toCharArray(parametro, 10);
+  //    //valor = atoi(parametro);
+  //    valor = 100;
+  //  } else {
+  //    modo = 's';
+  //  }
+  recibido = Serial.readString();
+  if (recibido != "") {
+    //Serial.println(recibido);
+    modo = recibido[0];
+    recibido.substring(1).toCharArray(parametro, 10);
+    valor = atoi(parametro);
+  }else{
+    modo = 's';
+  }
+
+  switch (modo) {
+
+    case on:
       digitalWrite(CON, HIGH);
       Serial.println("HELLO");
+      go = true;
+      break;
 
-      while (1) {                                   //INICIO DEL PROGRAMA
-        if (Serial.available())
-        {
-          recibido = Serial.readString();
-          modo = recibido[0];
-          recibido.substring(1).toCharArray(parametro, 10);
-          valor = atoi(parametro);
-          switch (modo) {
+    /*************** CONTROL DE LOS MOTORES   ***********************/
+    case parada:                            //PARADA
+      digitalWrite(motorDD, LOW);
+      digitalWrite(motorTD, LOW);
+      digitalWrite(motorDI, LOW);
+      digitalWrite(motorTI, LOW);
 
-            /*************** CONTROL DE LOS MOTORES   ***********************/
-            case parada:                            //PARADA
-              digitalWrite(motorDD, LOW);
-              digitalWrite(motorTD, LOW);
-              digitalWrite(motorDI, LOW);
-              digitalWrite(motorTI, LOW);
+      digitalWrite(DER, LOW);
+      digitalWrite(IZ, LOW);
+      break;
+    case avance:                             //AVANCE
+      digitalWrite(ADD, HIGH);
+      digitalWrite(TDD, LOW);
+      analogWrite(motorDD, valor);
 
-              digitalWrite(DER, LOW);
-              digitalWrite(IZ, LOW);
-              break;
-            case avance:                             //AVANCE
-              digitalWrite(ADD, HIGH);
-              digitalWrite(TDD, LOW);
-              analogWrite(motorDD, valor);
+      digitalWrite(ATD, HIGH);
+      digitalWrite(TTD, LOW);
+      analogWrite(motorTD, valor);
 
-              digitalWrite(ATD, HIGH);
-              digitalWrite(TTD, LOW);
-              analogWrite(motorTD, valor);
+      digitalWrite(ADI, HIGH);
+      digitalWrite(TDI, LOW);
+      analogWrite(motorDI, valor);
 
-              digitalWrite(ADI, HIGH);
-              digitalWrite(TDI, LOW);
-              analogWrite(motorDI, valor);
+      digitalWrite(ATI, HIGH);
+      digitalWrite(TTI, LOW);
+      analogWrite(motorTI, valor);
 
-              digitalWrite(ATI, HIGH);
-              digitalWrite(TTI, LOW);
-              analogWrite(motorTI, valor);
+      digitalWrite(DER, HIGH);
+      digitalWrite(IZ, HIGH);
 
-              digitalWrite(DER, HIGH);
-              digitalWrite(IZ, HIGH);
-              break;
-            case reversa:                             //REVERSA
-              digitalWrite(ADD, LOW);
-              digitalWrite(TDD, HIGH);
-              analogWrite(motorDD, valor);
+      delay(50);
+      analogWrite(motorDD, 0);
+      analogWrite(motorTD, 0);
+      analogWrite(motorDI, 0);
+      analogWrite(motorTI, 0);
+      break;
+    case reversa:                             //REVERSA
+      digitalWrite(ADD, LOW);
+      digitalWrite(TDD, HIGH);
+      analogWrite(motorDD, valor);
 
-              digitalWrite(ATD, LOW);
-              digitalWrite(TTD, HIGH);
-              analogWrite(motorTD, valor);
+      digitalWrite(ATD, LOW);
+      digitalWrite(TTD, HIGH);
+      analogWrite(motorTD, valor);
 
-              digitalWrite(ADI, LOW);
-              digitalWrite(TDI, HIGH);
-              analogWrite(motorDI, valor);
+      digitalWrite(ADI, LOW);
+      digitalWrite(TDI, HIGH);
+      analogWrite(motorDI, valor);
 
-              digitalWrite(ATI, LOW);
-              digitalWrite(TTI, HIGH);
-              analogWrite(motorTI, valor);
+      digitalWrite(ATI, LOW);
+      digitalWrite(TTI, HIGH);
+      analogWrite(motorTI, valor);
 
-              digitalWrite(DER, LOW);
-              digitalWrite(IZ, LOW);
-              break;
-            case derecha:                             //DERECHA
-              digitalWrite(ADD, LOW);
-              digitalWrite(TDD, HIGH);
-              analogWrite(motorDD, valor);
+      digitalWrite(DER, LOW);
+      digitalWrite(IZ, LOW);
 
-              digitalWrite(ATD, LOW);
-              digitalWrite(TTD, HIGH);
-              analogWrite(motorTD, valor);
+      delay(50);
+      analogWrite(motorDD, 0);
+      analogWrite(motorTD, 0);
+      analogWrite(motorDI, 0);
+      analogWrite(motorTI, 0);
+      break;
+    case derecha:                             //DERECHA
+      digitalWrite(ADD, LOW);
+      digitalWrite(TDD, HIGH);
+      analogWrite(motorDD, valor);
 
-              digitalWrite(ADI, HIGH);
-              digitalWrite(TDI, LOW);
-              analogWrite(motorDI, valor);
+      digitalWrite(ATD, LOW);
+      digitalWrite(TTD, HIGH);
+      analogWrite(motorTD, valor);
 
-              digitalWrite(ATI, HIGH);
-              digitalWrite(TTI, LOW);
-              analogWrite(motorTI, valor);
+      digitalWrite(ADI, HIGH);
+      digitalWrite(TDI, LOW);
+      analogWrite(motorDI, valor);
 
-              digitalWrite(DER, HIGH);
-              digitalWrite(IZ, LOW);
-              break;
-            case izquierda:                               //IZQUIERDA
-              digitalWrite(ADD, HIGH);
-              digitalWrite(TDD, LOW);
-              digitalWrite(motorDD, valor);
+      digitalWrite(ATI, HIGH);
+      digitalWrite(TTI, LOW);
+      analogWrite(motorTI, valor);
 
-              digitalWrite(ATD, HIGH);
-              digitalWrite(TTD, LOW);
-              analogWrite(motorTD, valor);
+      digitalWrite(DER, HIGH);
+      digitalWrite(IZ, LOW);
 
-              digitalWrite(ADI, LOW);
-              digitalWrite(TDI, HIGH);
-              analogWrite(motorDI, valor);
+      delay(50);
+      analogWrite(motorDD, 0);
+      analogWrite(motorTD, 0);
+      analogWrite(motorDI, 0);
+      analogWrite(motorTI, 0);
+      break;
+    case izquierda:                               //IZQUIERDA
+      digitalWrite(ADD, HIGH);
+      digitalWrite(TDD, LOW);
+      digitalWrite(motorDD, valor);
 
-              digitalWrite(ATI, LOW);
-              digitalWrite(TTI, HIGH);
-              analogWrite(motorTI, valor);
+      digitalWrite(ATD, HIGH);
+      digitalWrite(TTD, LOW);
+      analogWrite(motorTD, valor);
 
-              digitalWrite(DER, LOW);
-              digitalWrite(IZ, HIGH);
-              break;
+      digitalWrite(ADI, LOW);
+      digitalWrite(TDI, HIGH);
+      analogWrite(motorDI, valor);
 
+      digitalWrite(ATI, LOW);
+      digitalWrite(TTI, HIGH);
+      analogWrite(motorTI, valor);
 
+      digitalWrite(DER, LOW);
+      digitalWrite(IZ, HIGH);
 
-
-
-            /***************** MOVIMIENTO CUELLO Y PINZA  ********************/
-            case cue:
-
-
-              posI = valor;
-              posD = 179 - posI;
-
-              servoI.write(posI);
-              servoD.write(posD);
-
-
-
-              break;
-            case pinza:
+      delay(50);
+      analogWrite(motorDD, 0);
+      analogWrite(motorTD, 0);
+      analogWrite(motorDI, 0);
+      analogWrite(motorTI, 0);
+      break;
 
 
-              servoP.write(valor);
-
-              break;
 
 
-            /************* ENCONTRADO **************/
-            case led:
-              if (valor == 1) {
-                digitalWrite(EN, HIGH);
-              } else {
-                digitalWrite(EN, LOW);
-              }
-          }
-        }
-        digitalWrite(trig, LOW);
-        delayMicroseconds(4);
-        digitalWrite(trig, HIGH);
-        delayMicroseconds(10);
-        digitalWrite(trig, LOW);
 
-        duracion = pulseIn(eco, HIGH);
+    /***************** MOVIMIENTO CUELLO Y PINZA  ********************/
+    case cue:
 
-        distancia = duracion * 10 / 292 / 2;
-        Serial.println(distancia);
+
+      posI = valor;
+      posD = 179 - posI;
+
+      servoI.write(posI);
+      servoD.write(posD);
+
+
+
+      break;
+    case pinza:
+
+
+      servoP.write(valor);
+
+      break;
+
+
+    /************* ENCONTRADO **************/
+    case led:
+      if (valor == 1) {
+        digitalWrite(EN, HIGH);
+      } else {
+        digitalWrite(EN, LOW);
       }
-    }
   }
+
+
+  if (go) {
+    digitalWrite(trig, LOW);
+    delayMicroseconds(4);
+    digitalWrite(trig, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trig, LOW);
+
+    duracion = pulseIn(eco, HIGH);
+
+    distancia = duracion * 10 / 292 / 2;
+    Serial.println(distancia);
+  }
+
+
 }

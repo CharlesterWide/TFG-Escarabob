@@ -40,7 +40,7 @@ def on_message(client, userdata, msg):
         pass
     else:
         userdata.put(m)
-        print('%s %s' % (msg.topic, msg.payload))
+        #print('%s %s' % (msg.topic, msg.payload))
 
 
 def on_publish(client, userdata, result):
@@ -61,7 +61,7 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
 
     objetivo = ""
     base = ""
-    adquirido = True
+    adquirido = False
     contador = 10
     contadorREV = 10
     rotar = False
@@ -100,7 +100,7 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
                     # NO ENCUENTRA PIEZA
                     #### Busqueda de pieza
                     #Objeto delante
-                    if distancia < 20:
+                    if distancia < 30:
                         if not rotarREV:
                             orden = "REVE"
                             client.publish(topic, orden)
@@ -136,9 +136,9 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
                     # Hay objetivo
                     x = objetivo[1]
                     centro = 300
-                    margen = 50
+                    margen = 80
                     area = objetivo[3]
-                    distanciamin = 9500
+                    distanciamin = 9000
                     if x < (centro - margen):
                         # Obejetivo a la derecha
                         orden = "IZQU"
@@ -396,11 +396,11 @@ val_R.R = 0"""
 
 val_R = valores_ini()
 
-val_R.l_h = 0
-val_R.l_s = 60
-val_R.l_v = 165
-val_R.u_h = 38
-val_R.u_s = 215
+val_R.l_h = 140
+val_R.l_s = 55
+val_R.l_v = 0
+val_R.u_h = 180
+val_R.u_s = 229
 val_R.u_v = 255
 val_R.R = 255
 
@@ -408,13 +408,13 @@ val_R.R = 255
 """val_G = valores_ini()
 
 val_G.l_h = 45
-val_G.l_s = 80
+val_G.l_s = 100
 val_G.l_v = 40
-val_G.u_h = 65
+val_G.u_h = 70
 val_G.u_s = 255
 val_G.u_v = 255
-val_G.G = 255
-"""
+val_G.G = 255"""
+
 val_G = valores_ini()
 
 val_G.l_h = 0

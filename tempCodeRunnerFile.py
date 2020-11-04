@@ -1,1 +1,0 @@
-conn, addr = s.accept()

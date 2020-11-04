@@ -14,47 +14,51 @@ orden = "on"
 dist = ""
 fin = False
 
-while True:
 
-    conn, addr = serverSocket.accept()
+conn, addr = serverSocket.accept()
 
-    serverSocket.setblocking(0)
+serverSocket.setblocking(0)
 
-    print("Conexion establecida con %s:%s" % (addr[0], addr[1]))
+print("Conexion establecida con %s:%s" % (addr[0], addr[1]))
 
-    conn.send(orden.encode())
+conn.send(orden.encode())
 
-    while True:
-        try:
-            dist = conn.recv(1024)
-            print(dist.decode())
-        except:
-            conn.send(orden.encode())
+time.sleep(1)
+orden = "CUE"
+conn.send(orden.encode())
+time.sleep(1)
 
-        if not fin:
-            time.sleep(1)
-            orden = "a80"
-            conn.send(orden.encode())
-            time.sleep(1)
+time.sleep(1)
+orden = "AVANCE"
+conn.send(orden.encode())
+time.sleep(1)
 
-            orden = "d70"
-            conn.send(orden.encode())
-            time.sleep(0.08)
+orden = "DERECHA"
+conn.send(orden.encode())
+time.sleep(0.4)
 
-            orden = "r80"
-            conn.send(orden.encode())
-            time.sleep(1)
+orden = "AVANCE"
+conn.send(orden.encode())
+time.sleep(1)
 
-            orden = "i70"
-            conn.send(orden.encode())
-            time.sleep(0.08)
-            orden = "s0"
-            fin = True
-        else:
-            orden = "s0"
-            conn.send(orden.encode())
+orden = "DERECHA"
+conn.send(orden.encode())
+time.sleep(0.4)
 
+orden = "AVANCE"
+conn.send(orden.encode())
+time.sleep(1)
 
-        
+orden = "DERECHA"
+conn.send(orden.encode())
+time.sleep(0.4)
 
-        
+orden = "AVANCE"
+conn.send(orden.encode())
+time.sleep(1)
+
+orden = "STOP"
+conn.send(orden.encode())
+time.sleep(1)
+
+serverSocket.close()

@@ -2,7 +2,6 @@ import numpy as np
 import cv2 as cv
 import socket
 import pickle
-import numpy as np
 import struct
 import multiprocessing
 from multiprocessing import Queue
@@ -26,8 +25,10 @@ def cliente(cola_objetivo, cola_base):
     objetivo = ""
     base = ""
     adquirido = False
-    contador = 100
+    contador = 10
+    contadorREV = 10
     rotar = False
+    rotarREV = False
     distancia = 0
 
     while True:
@@ -41,11 +42,21 @@ def cliente(cola_objetivo, cola_base):
         while True:
 
             try:
-                distancia = conn.recv(1024)
+                distancia = conn.recv(4)
                 distancia = distancia.decode()
-                # print(distancia)
+                if distancia == "HELLO":
+                    print(distancia)
+                    distancia = 0
+                elif distancia == '':
+                    distancia = 0
+                else:
+                    distancia = distancia.replace('\n','')
+                    distancia = distancia.replace('\r','')
+                    distancia = int(distancia)
+
+                print(distancia)
             except:
-                pass
+                distancia = 0
 
             if cola_objetivo.empty():
                 objetivo = "NA"
@@ -58,27 +69,49 @@ def cliente(cola_objetivo, cola_base):
             else:
                 base = cola_base.get()
 
-            if distancia == 0:
+
+            if distancia <= 0:
+                pass
+            elif distancia >= 100:
+                #Codigo en caso de codigo de mensajes de la rasp
                 pass
             else:
                 if not adquirido:
-                    # Busqueda de pieza
+                    #### Busqueda de pieza
                     if objetivo == "NA":
                         # NO ENCUENTRA PIEZA
-                        if not rotar:
-                            orden = "AVANCE"
-                            conn.send(orden.encode())
-                            contador = contador-1
-                            if contador == 0:
-                                contador = 100
-                                rotar = True
+                        #Objeto delante
+                        if distancia < 20:
+                            if not rotarREV:
+                                orden = "REVE"
+                                conn.send(orden.encode())
+                                contadorREV -= 1
+                                if contadorREV == 0:
+                                    rotarREV = True
+                                    contadorREV = 10
+                            else:
+                                orden = "DERE"
+                                conn.send(orden.encode())
+                                contadorREV -= 1
+                                if contadorREV == 0:
+                                    rotarREV = False
+                                    contadorREV = 10
+
                         else:
-                            orden = "DERECHA"
-                            conn.send(orden.encode())
-                            contador = contador-1
-                            if contador == 0:
-                                contador = 100
-                                rotar = False
+                            if not rotar:
+                                orden = "AVAN"
+                                conn.send(orden.encode())
+                                contador = contador-1
+                                if contador == 0:
+                                    contador = 10
+                                    rotar = True
+                            else:
+                                orden = "DERE"
+                                conn.send(orden.encode())
+                                contador = contador-1
+                                if contador == 0:
+                                    contador = 10
+                                    rotar = False
                     else:
                         # Hay objetivo
                         x = objetivo[1]
@@ -88,16 +121,16 @@ def cliente(cola_objetivo, cola_base):
                         distanciamin = 9500
                         if x < (centro - margen):
                             # Obejetivo a la izquierda
-                            orden = "IZQUIERDA"
+                            orden = "IZQU"
                             conn.send(orden.encode())
                         elif x > (centro + margen):
                             # Objetivo a la derecha
-                            orden = "DERECHA"
+                            orden = "DERE"
                             conn.send(orden.encode())
                         else:
                             # Objetivo centrado
                             if area < distanciamin:
-                                orden = "AVANCE"
+                                orden = "AVAN"
                                 conn.send(orden.encode())
                             else:
                                 orden = "STOP"
@@ -108,20 +141,30 @@ def cliente(cola_objetivo, cola_base):
                     # Cubo en las pinzas moviendose a la base
                     if base == "NA":
                         # No encuentra la base
-                        if not rotar:
-                            orden = "AVANCE"
+                        if distancia < 20:
+                            orden = "REVE"
                             conn.send(orden.encode())
-                            contador = contador-1
-                            if contador == 0:
-                                contador = 100
-                                rotar = True
+                            time.sleep(0.5)
+                            orden = "DERE"
+                            conn.send(orden.encode())
+                            time.sleep(0.3)
+                            orden = "STOP"
+                            conn.send(orden.encode())
                         else:
-                            orden = "DERECHA"
-                            conn.send(orden.encode())
-                            contador = contador-1
-                            if contador == 0:
-                                contador = 100
-                                rotar = False
+                            if not rotar:
+                                orden = "AVAN"
+                                conn.send(orden.encode())
+                                contador = contador-1
+                                if contador == 0:
+                                    contador = 10
+                                    rotar = True
+                            else:
+                                orden = "DERE"
+                                conn.send(orden.encode())
+                                contador = contador-1
+                                if contador == 0:
+                                    contador = 10
+                                    rotar = False
                     else:
                         # Hay objetivo
                         x = base[1]
@@ -131,11 +174,11 @@ def cliente(cola_objetivo, cola_base):
                         distanciamin = 9500
                         if x < (centro - margen):
                             # Obejetivo a la izquierda
-                            orden = "IZQUIERDA"
+                            orden = "IZQU"
                             conn.send(orden.encode())
                         elif x > (centro + margen):
                             # Objetivo a la derecha
-                            orden = "DERECHA"
+                            orden = "DERE"
                             conn.send(orden.encode())
                         else:
                             # Objetivo centrado
@@ -317,7 +360,18 @@ class valores_ini:
     B = 0
 
 
+
 val_R = valores_ini()
+
+val_R.l_h = 0
+val_R.l_s = 0
+val_R.l_v = 0
+val_R.u_h = 0
+val_R.u_s = 0
+val_R.u_v = 0
+val_R.R = 0
+
+"""val_R = valores_ini()
 
 val_R.l_h = 0
 val_R.l_s = 60
@@ -325,7 +379,7 @@ val_R.l_v = 165
 val_R.u_h = 38
 val_R.u_s = 215
 val_R.u_v = 255
-val_R.R = 255
+val_R.R = 255"""
 
 
 """val_G = valores_ini()

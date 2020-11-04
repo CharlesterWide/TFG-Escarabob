@@ -114,6 +114,7 @@ void loop() {
 
     distancia = duracion * 10 / 292 / 2;
     Serial.println(distancia);
+    delay(16);
   }
 }
 
@@ -128,7 +129,6 @@ void serialEvent() {
     char inChar = (char)Serial.read();
 
     if (inChar == '\n') {
-      Serial.println(inString);
       modo = inString[0];
       inString.substring(1).toCharArray(parametro, 10);
       inString = "";
@@ -137,7 +137,7 @@ void serialEvent() {
 
         case on:
           digitalWrite(CON, HIGH);
-          Serial.println("HELLO");
+          //Serial.println("HELLO");
           go = true;
           break;
 

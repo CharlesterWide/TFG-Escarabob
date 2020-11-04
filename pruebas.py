@@ -29,7 +29,6 @@ def on_connect(client, userdata, flags, rc):
 
         print("Connected to broker")
         client.subscribe("Control/distancia")
-        client.publish(topic, "on")
     else:
 
         print("Connection failed")
@@ -41,7 +40,7 @@ def on_message(client, userdata, msg):
         pass
     else:
         userdata.put(m)
-    #print('%s %s' % (msg.topic, msg.payload))
+        print('%s %s' % (msg.topic, msg.payload))
 
 
 def on_publish(client, userdata, result):
@@ -58,11 +57,15 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
 
     client.connect(host, puerto)
     client.loop_start()
+
+
     objetivo = ""
     base = ""
-    adquirido = False
-    contador = 100
+    adquirido = True
+    contador = 10
+    contadorREV = 10
     rotar = False
+    rotarREV = False
     distancia = 0
     while True:
 
@@ -70,7 +73,6 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
             objetivo = "NA"
         else:
             objetivo = cola_objetivo.get()
-            print(objetivo[3])
 
         if cola_base.empty():
             base = "NA"
@@ -81,90 +83,137 @@ def cliente(cola_distancia, cola_objetivo, cola_base):
             distancia = 0
         else:
             distancia = cola_distancia.get()
+            if distancia == '':
+                distancia = 0
+            else:
+                distancia = int(distancia)
 
 
         if distancia == 0:
             pass
+        elif distancia == 100:
+            client.publish(topic, "on")
         else:
             if not adquirido:
                 # Busqueda de pieza
                 if objetivo == "NA":
                     # NO ENCUENTRA PIEZA
-                    if not rotar:
-                        client.publish(topic, "a60")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = True
+                    #### Busqueda de pieza
+                    #Objeto delante
+                    if distancia < 20:
+                        if not rotarREV:
+                            orden = "REVE"
+                            client.publish(topic, orden)
+                            contadorREV -= 1
+                            if contadorREV == 0:
+                                rotarREV = True
+                                contadorREV = 10
+                        else:
+                            orden = "DERE"
+                            client.publish(topic, orden)
+                            contadorREV -= 1
+                            if contadorREV == 0:
+                                rotarREV = False
+                                contadorREV = 10
+
                     else:
-                        client.publish(topic, "d100")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = False
+                        if not rotar:
+                            orden = "STOP"
+                            client.publish(topic, orden)
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 10
+                                rotar = True
+                        else:
+                            orden = "STOP"
+                            client.publish(topic, orden)
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 10
+                                rotar = False
+                    
                 else:
                     # Hay objetivo
                     x = objetivo[1]
                     centro = 300
                     margen = 50
                     area = objetivo[3]
-                    distanciamin = 600
-                    if x < (centro + margen):
+                    distanciamin = 9500
+                    if x < (centro - margen):
                         # Obejetivo a la derecha
-                        client.publish(topic, "d100")
-                    elif x > (centro - margen):
+                        orden = "IZQU"
+                        client.publish(topic, orden)
+                    elif x > (centro + margen):
                         # Objetivo a la izquierda
-                        client.publish(topic, "i100")
+                        orden = "DERE"
+                        client.publish(topic, orden)
                     else:
                         # Objetivo centrado
-                        if area > distanciamin:
-                            client.publish(topic, "a60")
+                        if area < distanciamin:
+                            orden = "AVAN"
+                            client.publish(topic, orden)
                         else:
-                            client.publish(topic, "s0")
-                            adquirido = True
-                            time.sleep(2)
+                            orden = "STOP"
+                            client.publish(topic, orden)
+
             else:
                 # Cubo en las pinzas moviendose a la base
                 if base == "NA":
                     # No encuentra la base
-                    if not rotar:
-                        client.publish(topic, "a60")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = True
+                    if distancia < 20:
+                        if not rotarREV:
+                            orden = "REVE"
+                            client.publish(topic, orden)
+                            contadorREV -= 1
+                            if contadorREV == 0:
+                                rotarREV = True
+                                contadorREV = 10
+                        else:
+                            orden = "DERE"
+                            client.publish(topic, orden)
+                            contadorREV -= 1
+                            if contadorREV == 0:
+                                rotarREV = False
+                                contadorREV = 10
+
                     else:
-                        client.publish(topic, "d100")
-                        contador = contador-1
-                        if contador == 0:
-                            contador = 100
-                            rotar = False
+                        if not rotar:
+                            orden = "StOP"
+                            client.publish(topic, orden)
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 10
+                                rotar = True
+                        else:
+                            orden = "STOP"
+                            client.publish(topic, orden)
+                            contador = contador-1
+                            if contador == 0:
+                                contador = 10
+                                rotar = False
                 else:
-                    # Hay objetivo
-                    x = base[1]
+                   # Hay objetivo
+                    x = objetivo[1]
                     centro = 300
                     margen = 50
-                    area = base[3]
-                    distanciamin = 600
-                    if x < (centro + margen):
+                    area = objetivo[3]
+                    distanciamin = 9500
+                    if x < (centro - margen):
                         # Obejetivo a la derecha
-                        client.publish(topic, "d100")
-                    elif x > (centro - margen):
+                        orden = "IZQU"
+                        client.publish(topic, orden)
+                    elif x > (centro + margen):
                         # Objetivo a la izquierda
-                        client.publish(topic, "a60")
+                        orden = "DERE"
+                        client.publish(topic, orden)
                     else:
                         # Objetivo centrado
-                        if area > distanciamin:
-                            client.publish(topic, "a60")
+                        if area < distanciamin:
+                            orden = "AVAN"
+                            client.publish(topic, orden)
                         else:
-                            client.publish(topic, "s0")
-                            adquirido = False
-                            time.sleep(2)
-
-        # print("Objetivo:")
-        # print(objetivo)
-        # print("Base:")
-        # print(base)
+                            orden = "STOP"
+                            client.publish(topic, orden)
 
         time.sleep(0.05)
 
@@ -174,19 +223,20 @@ con = False
 
 
 def videoRec(cola_framesR, cola_framesG, cola_framesB, cola_framesF):
-    global con
     HOST = ''
     PORT = 8485
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print('Socket creado')
+    print('Socket de video creado')
 
     s.bind((HOST, PORT))
-    print('Socket bind completado')
+    print('Socket de video bind completado')
     s.listen(10)
-    print('Socket en espera')
+    print('Socket de video en espera')
 
     conn, addr = s.accept()
+
+    print("Conexion de video establecida con %s:%s" % (addr[0], addr[1]))
 
     data = b""
     payload_size = struct.calcsize(">L")
@@ -212,12 +262,12 @@ def videoRec(cola_framesR, cola_framesG, cola_framesB, cola_framesF):
         frame = cv.imdecode(frame, cv.IMREAD_COLOR)
 
         frame = cv.flip(frame, 0)
+        frame = cv.flip(frame, 1)
 
         cola_framesR.put(frame)
         cola_framesG.put(frame)
         cola_framesB.put(frame)
         cola_framesF.put(frame)
-
 
 ####################  OPENCV ####################
 def nothing(x):
@@ -282,15 +332,18 @@ def buscador(cola_frames, val_ini, color, cola_obj):
                     y = approx.ravel()[1]
 
                     if(area > 400):
-
+                        momentos = cv.moments(contour)
+                        cx = int(momentos['m10']/momentos['m00'])
+                        cy = int(momentos['m01']/momentos['m00'])
                         if len(approx) == 3:
                             cv.drawContours(
                                 frame, [approx], 0, (val_ini.B, val_ini.G, val_ini.R), 2)
-
+                            cv.circle(frame, (cx, cy), 3,
+                                      (val_ini.B, val_ini.G, val_ini.R), -1)
                             if cola_obj.full():
                                 pass
                             else:
-                                cola_obj.put([color, area, "T", x, y])
+                                cola_obj.put([color, area, "T", cx, cy])
 
                             cv.putText(frame, "Base", (x, y),
                                        font, 1, (255, 255, 255))
@@ -299,11 +352,12 @@ def buscador(cola_frames, val_ini, color, cola_obj):
                                 areamax = area
                                 cv.drawContours(
                                     frame, [approx], 0, (val_ini.B, val_ini.G, val_ini.R), 2)
-
+                                cv.circle(frame, (cx, cy), 3,
+                                          (val_ini.B, val_ini.G, val_ini.R), -1)
                                 if cola_obj.full():
                                     pass
                                 else:
-                                    cola_obj.put([color, area, "C", x, y])
+                                    cola_obj.put([color, area, "C", cx, cy])
 
                                 cv.putText(frame, "Objetivo", (x, y),
                                            font, 1, (255, 255, 255))
@@ -315,6 +369,7 @@ def buscador(cola_frames, val_ini, color, cola_obj):
             break
 
         cv.waitKey(1)
+
 
 
 class valores_ini:
@@ -329,6 +384,16 @@ class valores_ini:
     B = 0
 
 
+"""val_R = valores_ini()
+
+val_R.l_h = 0
+val_R.l_s = 0
+val_R.l_v = 0
+val_R.u_h = 0
+val_R.u_s = 0
+val_R.u_v = 0
+val_R.R = 0"""
+
 val_R = valores_ini()
 
 val_R.l_h = 0
@@ -340,7 +405,7 @@ val_R.u_v = 255
 val_R.R = 255
 
 
-val_G = valores_ini()
+"""val_G = valores_ini()
 
 val_G.l_h = 45
 val_G.l_s = 80
@@ -349,9 +414,18 @@ val_G.u_h = 65
 val_G.u_s = 255
 val_G.u_v = 255
 val_G.G = 255
+"""
+val_G = valores_ini()
 
+val_G.l_h = 0
+val_G.l_s = 0
+val_G.l_v = 0
+val_G.u_h = 0
+val_G.u_s = 0
+val_G.u_v = 0
+val_G.G = 0
 
-val_B = valores_ini()
+"""val_B = valores_ini()
 
 val_B.l_h = 80
 val_B.l_s = 80
@@ -359,7 +433,17 @@ val_B.l_v = 40
 val_B.u_h = 100
 val_B.u_s = 255
 val_B.u_v = 255
-val_B.B = 255
+val_B.B = 255"""
+
+val_B = valores_ini()
+
+val_B.l_h = 0
+val_B.l_s = 0
+val_B.l_v = 0
+val_B.u_h = 0
+val_B.u_s = 0
+val_B.u_v = 0
+val_B.B = 0
 
 
 ########### CONTROL PRINCIPAL ################

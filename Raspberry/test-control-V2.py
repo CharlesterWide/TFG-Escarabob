@@ -31,11 +31,28 @@ while True:
         data = data.decode()
         print(data)
     except:
-        pass
+        data = ""
 
     if data == "on":
-        arduino.write(str.encode('ON'))
+        arduino.write(str.encode('on\n'))
         on = True
+    elif data == "AVANCE":
+        arduino.write(str.encode('a60\n'))
+    elif data == "REVERSA":
+        arduino.write(str.encode('r60\n'))
+    elif data == "DERECHA":
+        arduino.write(str.encode('d80\n'))
+    elif data == "IZQUIERDA":
+        arduino.write(str.encode('i80\n'))
+    elif data == "STOP":
+        arduino.write(str.encode('s0\n'))
+    elif data == "PINZA":
+        arduino.write(str.encode('p175\n'))
+    elif data == "CUE":
+        arduino.write(str.encode('c100\n'))
+    else:
+        pass
+
 
 
     if on:

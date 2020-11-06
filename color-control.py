@@ -39,8 +39,9 @@ def on_message(client, userdata, msg):
     if userdata.full():
         pass
     else:
-        userdata.put(m)
-        #print('%s %s' % (msg.topic, msg.payload))
+        if m != '\r\n':
+            userdata.put(m)
+            #print('%s %s' % (msg.topic, msg.payload))
 
 
 def on_publish(client, userdata, result):
@@ -59,10 +60,9 @@ def cliente(cola_distancia, cola_objetivo):
     client.loop_start()
 
     objetivo = ""
-    adquirido = False
-    contador = 10
+
     contadorREV = 10
-    rotar = False
+
     rotarREV = False
     distancia = 0
     while True:
@@ -71,6 +71,8 @@ def cliente(cola_distancia, cola_objetivo):
             objetivo = "NA"
         else:
             objetivo = cola_objetivo.get()
+            area = objetivo[3]
+            print(area)
 
 
         if cola_distancia.empty():
@@ -86,6 +88,21 @@ def cliente(cola_distancia, cola_objetivo):
             pass
         elif distancia == 100:
             client.publish(topic, "on")
+        elif distancia < 30:
+            if not rotarREV:
+                orden = "REVE"
+                client.publish(topic, orden)
+                contadorREV -= 1
+                if contadorREV == 0:
+                    rotarREV = True
+                    contadorREV = 10
+            else:
+                orden = "DERE"
+                client.publish(topic, orden)
+                contadorREV -= 1
+                if contadorREV == 0:
+                    rotarREV = False
+                    contadorREV = 10
         else:
             if objetivo == "NA":
                 orden = "STOP"
@@ -99,47 +116,34 @@ def cliente(cola_distancia, cola_objetivo):
                 if color == 'R':
                     if tipo == 'C':
                         #Perseguir al cuadrado rojo
-                        if distancia < 30:
-                            if not rotarREV:
-                                orden = "REVE"
-                                client.publish(topic, orden)
-                                contadorREV -= 1
-                                if contadorREV == 0:
-                                    rotarREV = True
-                                    contadorREV = 10
-                            else:
-                                orden = "DERE"
-                                client.publish(topic, orden)
-                                contadorREV -= 1
-                                if contadorREV == 0:
-                                    rotarREV = False
-                                    contadorREV = 10
-                        else:
-                            centro = 300
-                            margen = 80
-                            distanciamin = 9000
 
-                            if x < (centro - margen):
-                                # Obejetivo a la derecha
-                                orden = "IZQU"
-                                client.publish(topic, orden)
-                            elif x > (centro + margen):
-                                # Objetivo a la izquierda
-                                orden = "DERE"
+                        centro = 300
+                        margen = 50
+                        distanciamin = 100000
+
+                        if x < (centro - margen):
+                            # Obejetivo a la derecha
+                            orden = "IZQU"
+                            client.publish(topic, orden)
+                        elif x > (centro + margen):
+                            # Objetivo a la izquierda
+                            orden = "DERE"
+                            client.publish(topic, orden)
+                        else:
+                            # Objetivo centrado
+                            if area < distanciamin:
+                                orden = "AVAN"
                                 client.publish(topic, orden)
                             else:
-                                # Objetivo centrado
-                                if area < distanciamin:
-                                    orden = "AVAN"
-                                    client.publish(topic, orden)
-                                else:
-                                    orden = "STOP"
-                                    client.publish(topic, orden)
+                                orden = "STOP"
+                                client.publish(topic, orden)
+    
+        time.sleep(0.015)
 
 
             
 
-        time.sleep(0.05)
+
 
 
 #################### SOCKET RECEPCION VIDEO #############

@@ -232,7 +232,7 @@ void serialEvent() {
         case izquierda:                               //IZQUIERDA
           digitalWrite(ADD, HIGH);
           digitalWrite(TDD, LOW);
-          digitalWrite(motorDD, valor);
+          //digitalWrite(motorDD, valor);
 
           digitalWrite(ATD, HIGH);
           digitalWrite(TTD, LOW);
